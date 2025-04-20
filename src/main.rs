@@ -3,10 +3,11 @@ use std::error::Error;
 use bluest::Adapter;
 use tracing::info;
 use tracing::metadata::LevelFilter;
+use uuid::Uuid;
 use bluest::btuuid::descriptors::CHARACTERISTIC_USER_DESCRIPTION;
 
-const BATTERY_SERVICE_UUID: &str = "0000180F-0000-1000-8000-00805F9B34FB";
-const BATTERY_LEVEL_UUID: &str = "00002A19-0000-1000-8000-00805F9B34FB";
+const BATTERY_SERVICE_UUID: Uuid = Uuid::from_u128(0x0000180F_0000_1000_8000_00805F9B34FB);
+const BATTERY_LEVEL_UUID: Uuid = Uuid::from_u128(0x00002A19_0000_1000_8000_00805F9B34FB);
 
 fn main() -> Result<(), Box<dyn Error>> {
     use tracing_subscriber::prelude::*;
@@ -38,11 +39,11 @@ async fn async_main() -> Result<(), Box<dyn Error>> {
             adapter.connect_device(&device).await?;
             let services = device.services().await?;
             for service in services {
-                if service.uuid().to_string().eq_ignore_ascii_case(BATTERY_SERVICE_UUID) {
+                if service.uuid() == BATTERY_SERVICE_UUID {
                     info!("  found battery service: {:?}", service.uuid());
                     let characteristics = service.characteristics().await?;
                     for characteristic in characteristics {
-                        if characteristic.uuid().to_string().eq_ignore_ascii_case(BATTERY_LEVEL_UUID) {
+                        if characteristic.uuid() == BATTERY_LEVEL_UUID {
                             info!("    found battery level characteristic: {:?}", characteristic.uuid());
                             let value = characteristic.read().await?;
                             println!("バッテリーレベル: {:?}", value);
