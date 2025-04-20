@@ -31,8 +31,10 @@ async fn async_main() -> Result<(), Box<dyn Error>> {
     adapter.wait_available().await?;
 
     info!("getting connected devices");
-    let devices = adapter.connected_devices().await?;
+    // let devices = adapter.connected_devices().await?;
+    let devices = adapter.connected_devices_with_services(&[BATTERY_SERVICE_UUID, BATTERY_LEVEL_UUID]).await?;
     for device in devices {
+        info!("found device: {:?}", device);
         let name = device.name()?.to_string();
         if name.contains("roBa") || name.contains("moNa2") {
             info!("target device found: {}", name);
