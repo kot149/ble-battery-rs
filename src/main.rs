@@ -63,6 +63,11 @@ async fn async_main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
+        // rssi() is only supported on macOS
+        #[cfg(target_os = "macos")]{
+            let rssi = device.rssi().await?;
+            info!("  - RSSI: {:?}", rssi);
+        }
     }
     info!("done");
 
