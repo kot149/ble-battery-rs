@@ -48,7 +48,7 @@ async fn async_main() -> Result<(), Box<dyn Error>> {
                         if characteristic.uuid() == BATTERY_LEVEL_UUID {
                             info!("    found battery level characteristic: {:?}", characteristic.uuid());
                             let value = characteristic.read().await?;
-                            println!("バッテリーレベル: {:?}", value);
+                            println!("Battery Level: {:?}", value);
 
                             // User Descriptionの取得
                             let descriptors = characteristic.descriptors().await?;
@@ -56,9 +56,9 @@ async fn async_main() -> Result<(), Box<dyn Error>> {
                                 if descriptor.uuid() == CHARACTERISTIC_USER_DESCRIPTION {
                                     let desc_value = descriptor.read().await?;
                                     if let Ok(desc_str) = String::from_utf8(desc_value.clone()) {
-                                        println!("ユーザー記述子: {}", desc_str);
+                                        println!("User Description: {}", desc_str);
                                     } else {
-                                        println!("ユーザー記述子(バイナリ): {:?}", desc_value);
+                                        println!("User Description (binary): {:?}", desc_value);
                                     }
                                 }
                             }
