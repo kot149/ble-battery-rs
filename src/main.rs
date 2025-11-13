@@ -32,42 +32,50 @@ async fn async_main() -> Result<(), Box<dyn Error>> {
     adapter.wait_available().await?;
 
     info!("getting connected devices");
-    // let devices = adapter.connected_devices().await?;
-    let devices = adapter.connected_devices_with_services(&[BATTERY_SERVICE_UUID, BATTERY_LEVEL_UUID]).await?;
-    for device in devices {
-        info!("- found device: {:?}", device);
-        adapter.connect_device(&device).await?;
+    let devices = adapter.connected_devices().await?;
+    // let devices = adapter.connected_devices_with_services(&[BATTERY_SERVICE_UUID, BATTERY_LEVEL_UUID]).await?;
+    for target_device in devices.iter() {
+        info!("- Found device: {:?}", target_device);
 
-        let services = device.services().await?;
-        let battery_services = services.iter().filter(|s| s.uuid() == BATTERY_SERVICE_UUID);
-        for battery_service in battery_services {
-            info!("  - found battery service: {:?}", battery_service.uuid());
-            let characteristics = battery_service.characteristics().await?;
-            if let Some(battery_level_characteristic) = characteristics.iter().find(|c| c.uuid() == BATTERY_LEVEL_UUID) {
-                info!("    - found battery level characteristic: {:?}", battery_level_characteristic.uuid());
-                let value = battery_level_characteristic.read().await?;
-                info!("    - Battery Level: {:?}", value);
+        adapter
+        .connect_device(target_device)
+        .await
+        .map_err(|e| e.to_string())?;
 
-                // User Descriptionの取得
-                let descriptors = battery_level_characteristic.descriptors().await?;
+        let services = target_device.services().await.map_err(|e| e.to_string())?;
+
+        for battery_service in services.iter().filter(|service| service.uuid() == BATTERY_SERVICE_UUID) {
+            let characteristics = battery_service.characteristics().await.map_err(|e| e.to_string())?;
+
+            for battery_level_characteristic in characteristics.iter().filter(|c| c.uuid() == BATTERY_LEVEL_UUID) {
+                let battery_levels = battery_level_characteristic.read().await.map_err(|e| e.to_string())?;
+
+                for battery_level in battery_levels.iter() {
+                    info!("Battery level: {:?}", battery_level);
+                }
+                let descriptors = battery_level_characteristic
+                    .descriptors()
+                    .await
+                    .map_err(|e| e.to_string())?;
+
                 if let Some(user_description_descriptor) = descriptors.iter().find(|d| d.uuid() == CHARACTERISTIC_USER_DESCRIPTION) {
-                    let desc_value = user_description_descriptor.read().await?;
+                    let desc_value = user_description_descriptor.read().await.map_err(|e| e.to_string())?;
                     if let Ok(desc_str) = String::from_utf8(desc_value.clone()) {
-                        info!("      - User Description: {}", desc_str);
-                    } else {
-                        info!("      - User Description (binary): {:?}", desc_value);
+                        info!("User description: {:?}", desc_str);
                     }
+                } else {
+                    info!("User description: (not found)");
                 }
             }
         }
 
         // rssi() is only supported on macOS
         #[cfg(target_os = "macos")]{
-            let rssi = device.rssi().await?;
+            let rssi = target_device.rssi().await?;
             info!("  - RSSI: {:?}", rssi);
         }
 
-        adapter.disconnect_device(&device).await?;
+        adapter.disconnect_device(target_device).await.map_err(|e| e.to_string())?;
     }
     info!("done");
 
